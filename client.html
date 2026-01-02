@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🗂️ File Server - 文件管理系統</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(120deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .app-header {
+            text-align: center;
+            margin-bottom: 30px;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        .app-header h1 {
+            color: white;
+            font-size: 3em;
+            font-weight: 700;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            margin-bottom: 10px;
+        }
+
+        .app-header p {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.2em;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            padding: 8px 20px;
+            border-radius: 25px;
+            color: white;
+            margin-top: 15px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background: #4ade80;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #4ade80;
+        }
+
+        .user-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            padding: 10px 24px;
+            border-radius: 25px;
+            color: white;
+            margin-left: 15px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(16,185,129,0.3);
+        }
+
+        .user-badge.hidden {
+            display: none;
+        }
+
+        .tabs-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tab-button {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tab-button:hover {
+            background: rgba(255,255,255,0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        .tab-button.active {
+            background: white;
+            color: #1e3c72;
+            border-color: white;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 50px rgba(0,0,0,0.3);
+        }
+
+        .card h2 {
+            color: #1e3c72;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #7e22ce;
+            box-shadow: 0 0 0 4px rgba(126,34,206,0.1);
+        }
+
+        textarea.form-input {
+            min-height: 120px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #7e22ce 0%, #5b21b6 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(126,34,206,0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(126,34,206,0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            box-shadow: 0 4px 15px rgba(37,99,235,0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 4px 15px rgba(239,68,68,0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 4px 15px rgba(16,185,129,0.3);
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        .quick-login {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+
+        .response-box {
+            margin-top: 20px;
+            padding: 18px;
+            background: #f8fafc;
+            border-left: 4px solid #7e22ce;
+            border-radius: 10px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        .response-box.success {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .response-box.error {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .token-display {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 2px solid #f59e0b;
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 15px;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .file-list {
+            list-style: none;
+            margin-top: 20px;
+        }
+
+        .file-item {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 18px;
+            margin: 12px 0;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover {
+            border-color: #7e22ce;
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #1e3c72;
+            font-size: 1.05em;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .info-card {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border-left: 4px solid #2563eb;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+
+        .info-card h3 {
+            color: #1e40af;
+            margin-bottom: 12px;
+            font-size: 1.2em;
+        }
+
+        .account-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .account-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        @media (max-width: 768px) {
+            .app-header h1 {
+                font-size: 2em;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            .quick-login {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="app-header">
+            <h1>🗂️ File Server</h1>
+            <div>
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span>伺服器運行中</span>
+                </div>
+                <div id="user-badge" class="user-badge hidden">
+                    👤 <span id="current-user"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="tabs-container">
+            <button class="tab-button active" onclick="showTab('login')">
+                🔐 登入系統
+            </button>
+            <button class="tab-button" onclick="showTab('files')">
+                📁 檔案管理
+            </button>
+            <button class="tab-button" onclick="showTab('users')">
+                👥 使用者管理
+            </button>
+        </div>
+
+        <!-- Login Tab -->
+        <div id="login-tab" class="tab-content active">
+            <div class="card">
+                <h2>🔐 使用者登入</h2>
+                
+                <div class="info-card">
+                    <h3>預設帳號</h3>
+                    <div class="account-list">
+                        <div class="account-item">
+                            <strong>管理員：</strong> admin / admin123
+                        </div>
+                        <div class="account-item">
+                            <strong>訪客：</strong> guest / guest
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>帳號</label>
+                    <input type="text" id="login-username" class="form-input" placeholder="輸入帳號">
+                </div>
+
+                <div class="form-group">
+                    <label>密碼</label>
+                    <input type="password" id="login-password" class="form-input" placeholder="輸入密碼">
+                </div>
+
+                <button class="btn btn-success" onclick="login()">
+                    ✓ 登入
+                </button>
+
+                <div class="quick-login">
+                    <button class="btn btn-secondary" onclick="quickLogin('admin', 'admin123')">
+                        ⚡ 快速登入 (管理員)
+                    </button>
+                    <button class="btn" onclick="quickLogin('guest', 'guest')">
+                        ⚡ 快速登入 (訪客)
+                    </button>
+                </div>
+
+                <div id="login-response"></div>
+            </div>
+        </div>
+
+        <!-- Files Tab -->
+        <div id="files-tab" class="tab-content">
+            <div class="grid-2">
+                <!-- List Files -->
+                <div class="card">
+                    <h2>📋 檔案列表</h2>
+                    <button class="btn btn-secondary" onclick="listFiles()">
+                        🔄 刷新列表
+                    </button>
+                    <div id="files-response"></div>
+                </div>
+
+                <!-- Upload File -->
+                <div class="card">
+                    <h2>📤 上傳檔案</h2>
+                    
+                    <div class="form-group">
+                        <label>選擇檔案</label>
+                        <input type="file" id="upload-file-input" class="form-input" onchange="handleFileSelect(event)">
+                    </div>
+
+                    <div class="form-group">
+                        <label>檔案名稱</label>
+                        <input type="text" id="upload-filename" class="form-input" placeholder="例如: document.txt">
+                    </div>
+
+                    <div class="form-group">
+                        <label>檔案內容</label>
+                        <textarea id="upload-data" class="form-input" placeholder="輸入檔案內容..."></textarea>
+                    </div>
+
+                    <button class="btn btn-success" onclick="uploadFile()">
+                        ⬆️ 上傳
+                    </button>
+                    <button class="btn btn-secondary btn-small" onclick="clearUploadForm()" style="margin-left: 10px;">
+                        🗑️ 清空
+                    </button>
+
+                    <div id="upload-response"></div>
+                </div>
+            </div>
+
+            <!-- Download File -->
+            <div class="card">
+                <h2>📥 下載檔案</h2>
+                <div class="form-group">
+                    <label>檔案名稱</label>
+                    <input type="text" id="download-filename" class="form-input" placeholder="例如: document.txt">
+                </div>
+                <button class="btn btn-secondary" onclick="downloadFile()">
+                    ⬇️ 下載
+                </button>
+                <div id="download-response"></div>
+            </div>
+        </div>
+
+        <!-- Users Tab -->
+        <div id="users-tab" class="tab-content">
+            <div class="card">
+                <h2>👥 使用者管理 (僅管理員)</h2>
+                <button class="btn btn-secondary" onclick="listUsers()">
+                    📋 列出所有使用者
+                </button>
+                <div id="users-list-response"></div>
+            </div>
+
+            <div class="grid-2">
+                <!-- Create User -->
+                <div class="card">
+                    <h2>➕ 創建使用者</h2>
+                    <div class="form-group">
+                        <label>使用者名稱</label>
+                        <input type="text" id="create-username" class="form-input" placeholder="新使用者名稱">
+                    </div>
+                    <div class="form-group">
+                        <label>密碼</label>
+                        <input type="password" id="create-password" class="form-input" placeholder="新密碼">
+                    </div>
+                    <button class="btn btn-success" onclick="createUser()">
+                        ✓ 創建
+                    </button>
+                    <div id="create-user-response"></div>
+                </div>
+
+                <!-- Delete User -->
+                <div class="card">
+                    <h2>🗑️ 刪除使用者</h2>
+                    <div class="form-group">
+                        <label>使用者名稱</label>
+                        <input type="text" id="delete-username" class="form-input" placeholder="要刪除的使用者名稱">
+                    </div>
+                    <button class="btn btn-danger" onclick="deleteUser()">
+                        ✗ 刪除
+                    </button>
+                    <div id="delete-user-response"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:7979';
+        let currentToken = '';
+        let currentUsername = '';
+        let currentFileData = null; // 保存當前選擇的文件數據
+        let currentFileName = ''; // 保存當前文件名
+
+        // Tab switching
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active from all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Highlight button
+            event.target.classList.add('active');
+        }
+
+        // Display response
+        function displayResponse(elementId, message, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = '';
+            
+            const responseDiv = document.createElement('div');
+            responseDiv.className = `response-box ${isSuccess ? 'success' : 'error'}`;
+            responseDiv.textContent = message;
+            
+            element.appendChild(responseDiv);
+        }
+
+        // Login
+        async function login() {
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+
+            if (!username || !password) {
+                displayResponse('login-response', '❌ 請輸入帳號和密碼', false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+                });
+
+                const data = await response.text();
+
+                if (response.ok) {
+                    currentToken = data.trim();
+                    currentUsername = username;
+                    
+                    // 顯示使用者標籤
+                    document.getElementById('current-user').textContent = username;
+                    document.getElementById('user-badge').classList.remove('hidden');
+                    
+                    const tokenDisplay = document.createElement('div');
+                    tokenDisplay.className = 'token-display';
+                    tokenDisplay.innerHTML = `<strong>🔑 登入成功！Token:</strong><br>${currentToken}`;
+                    
+                    displayResponse('login-response', `✅ 登入成功！\n使用者: ${username}\n\n`, true);
+                    document.getElementById('login-response').appendChild(tokenDisplay);
+                } else {
+                    displayResponse('login-response', `❌ 登入失敗\n${data}`, false);
+                }
+            } catch (error) {
+                displayResponse('login-response', `❌ 連線錯誤: ${error.message}`, false);
+            }
+        }
+
+        // Quick login
+        function quickLogin(username, password) {
+            document.getElementById('login-username').value = username;
+            document.getElementById('login-password').value = password;
+            login();
+        }
+
+        // List files
+        async function listFiles() {
+            if (!currentToken) {
+                displayResponse('files-response', '❌ 請先登入', false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/files`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                const data = await response.text();
+                
+                if (response.ok) {
+                    // Parse file list and create interactive elements
+                    const lines = data.split('\n').filter(line => line.trim() && !line.includes('Available files:'));
+                    
+                    if (lines.length === 0) {
+                        displayResponse('files-response', '📂 目前沒有檔案', true);
+                    } else {
+                        // 提取純文件名（移除 "- " 前綴和 " (Size: XX bytes)" 後綴）
+                        const files = lines.map(line => {
+                            let filename = line.trim();
+                            // 移除 "- " 前綴
+                            if (filename.startsWith('- ')) {
+                                filename = filename.substring(2);
+                            }
+                            // 移除 " (Size: XX bytes)" 後綴
+                            const sizeIndex = filename.indexOf(' (Size:');
+                            if (sizeIndex > 0) {
+                                filename = filename.substring(0, sizeIndex);
+                            }
+                            return filename.trim();
+                        }).filter(f => f);
+                        
+                        const fileListHtml = `
+                            <ul class="file-list">
+                                ${files.map(file => `
+                                    <li class="file-item">
+                                        <span class="file-name">📄 ${file}</span>
+                                        <div class="file-actions">
+                                            <button class="btn btn-secondary btn-small" onclick="downloadFileByName('${file}')">
+                                                ⬇️ 下載
+                                            </button>
+                                            <button class="btn btn-danger btn-small" onclick="deleteFileByName('${file}')">
+                                                🗑️ 刪除
+                                            </button>
+                                        </div>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        `;
+                        document.getElementById('files-response').innerHTML = fileListHtml;
+                    }
+                } else {
+                    displayResponse('files-response', `❌ 獲取檔案列表失敗\n${data}`, false);
+                }
+            } catch (error) {
+                displayResponse('files-response', `❌ 連線錯誤: ${error.message}`, false);
+            }
+        }
+
+        // Handle file selection
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // 限制文件大小為 1MB（文字檔案）
+            const maxSize = 1 * 1024 * 1024;
+            if (file.size > maxSize) {
+                alert('❌ 檔案太大！最大支援 1MB');
+                event.target.value = '';
+                return;
+            }
+            
+            // 只支援文字檔案
+            const textExtensions = ['.txt', '.js', '.json', '.html', '.css', '.md', '.py', '.c', '.cpp', '.h', '.java', '.xml', '.csv', '.log'];
+            const isTextFile = textExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+            
+            if (!isTextFile) {
+                alert('❌ 此檔案伺服器僅支援文字檔案上傳！\n\n支援的格式：.txt, .js, .json, .html, .css, .md, .py, .c, .cpp, .h, .java, .xml, .csv, .log\n\n如需上傳圖片或其他二進位檔案，請使用專門的圖床服務。');
+                event.target.value = '';
+                return;
+            }
+            
+            // 保存文件名
+            currentFileName = file.name;
+            document.getElementById('upload-filename').value = file.name;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // 保存文字內容並顯示
+                currentFileData = e.target.result;
+                document.getElementById('upload-data').value = e.target.result;
+            };
+            
+            reader.onerror = function() {
+                alert('❌ 讀取檔案失敗');
+            };
+            
+            // 讀取為文字
+            reader.readAsText(file);
+        }
+
+        // Clear upload form
+        function clearUploadForm() {
+            document.getElementById('upload-filename').value = '';
+            document.getElementById('upload-data').value = '';
+            document.getElementById('upload-file-input').value = '';
+            document.getElementById('upload-response').innerHTML = '';
+            currentFileData = null;
+            currentFileName = '';
+        }
+
+        // Upload file
+        async function uploadFile() {
+            if (!currentToken) {
+                displayResponse('upload-response', '❌ 請先登入', false);
+                return;
+            }
+
+            const filename = document.getElementById('upload-filename').value.trim();
+            let data;
+            
+            // 如果有選擇文件，使用 currentFileData，否則使用 textarea 的內容
+            if (currentFileData !== null) {
+                data = currentFileData;
+            } else {
+                data = document.getElementById('upload-data').value;
+            }
+
+            if (!filename || !data) {
+                displayResponse('upload-response', '❌ 請輸入檔案名稱和內容', false);
+                return;
+            }
+
+            try {
+                // 手動構建表單數據字符串
+                const encodedFilename = encodeURIComponent(filename);
+                const encodedData = encodeURIComponent(data);
+                const bodyString = 'filename=' + encodedFilename + '&data=' + encodedData;
+
+                const response = await fetch('http://localhost:7979/files', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + currentToken.trim(),
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: bodyString
+                });
+
+                const result = await response.text();
+                
+                if (response.ok) {
+                    displayResponse('upload-response', '✅ 檔案上傳成功！\n檔案: ' + filename, true);
+                    clearUploadForm();
+                } else {
+                    displayResponse('upload-response', '❌ 上傳失敗\n' + result, false);
+                }
+            } catch (error) {
+                displayResponse('upload-response', '❌ 連線錯誤: ' + error.message, false);
+                console.error('Upload error:', error);
+            }
+        }
+
+        // Download file
+        async function downloadFile() {
+            if (!currentToken) {
+                displayResponse('download-response', '❌ 請先登入', false);
+                return;
+            }
+
+            const filename = document.getElementById('download-filename').value;
+            
+            if (!filename) {
+                displayResponse('download-response', '❌ 請輸入檔案名稱', false);
+                return;
+            }
+
+            downloadFileByName(filename);
+        }
+
+        // Download file by name
+        async function downloadFileByName(filename) {
+            if (!currentToken) {
+                alert('❌ 請先登入');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/files/${encodeURIComponent(filename)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                    displayResponse('download-response', `✅ 檔案下載成功！\n檔案: ${filename}`, true);
+                } else {
+                    const data = await response.text();
+                    displayResponse('download-response', `❌ 下載失敗\n${data}`, false);
+                }
+            } catch (error) {
+                displayResponse('download-response', `❌ 連線錯誤: ${error.message}`, false);
+            }
+        }
+
+        // Delete file by name
+        async function deleteFileByName(filename) {
+            if (!currentToken) {
+                alert('❌ 請先登入');
+                return;
+            }
+
+            if (!confirm(`確定要刪除檔案 "${filename}" 嗎？`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/files/${encodeURIComponent(filename)}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                const data = await response.text();
+                
+                if (response.ok) {
+                    alert(`✅ 檔案刪除成功！\n檔案: ${filename}`);
+                    listFiles(); // Refresh list
+                } else {
+                    alert(`❌ 刪除失敗\n${data}`);
+                }
+            } catch (error) {
+                alert(`❌ 連線錯誤: ${error.message}`);
+            }
+        }
+
+        // List users
+        async function listUsers() {
+            if (!currentToken) {
+                displayResponse('users-list-response', '❌ 請先登入', false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/users`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                const data = await response.text();
+                
+                if (response.ok) {
+                    displayResponse('users-list-response', `✅ 使用者列表：\n\n${data}`, true);
+                } else {
+                    displayResponse('users-list-response', `❌ 獲取使用者列表失敗\n${data}`, false);
+                }
+            } catch (error) {
+                displayResponse('users-list-response', `❌ 連線錯誤: ${error.message}`, false);
+            }
+        }
+
+        // Create user
+        async function createUser() {
+            if (!currentToken) {
+                displayResponse('create-user-response', '❌ 請先登入', false);
+                return;
+            }
+
+            const username = document.getElementById('create-username').value;
+            const password = document.getElementById('create-password').value;
+
+            if (!username || !password) {
+                displayResponse('create-user-response', '❌ 請輸入使用者名稱和密碼', false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/users`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+                });
+
+                const data = await response.text();
+                
+                if (response.ok) {
+                    displayResponse('create-user-response', `✅ 使用者創建成功！\n使用者: ${username}`, true);
+                    document.getElementById('create-username').value = '';
+                    document.getElementById('create-password').value = '';
+                } else {
+                    displayResponse('create-user-response', `❌ 創建失敗\n${data}`, false);
+                }
+            } catch (error) {
+                displayResponse('create-user-response', `❌ 連線錯誤: ${error.message}`, false);
+            }
+        }
+
+        // Delete user
+        async function deleteUser() {
+            if (!currentToken) {
+                displayResponse('delete-user-response', '❌ 請先登入', false);
+                return;
+            }
+
+            const username = document.getElementById('delete-username').value;
+
+            if (!username) {
+                displayResponse('delete-user-response', '❌ 請輸入使用者名稱', false);
+                return;
+            }
+
+            if (!confirm(`確定要刪除使用者 "${username}" 嗎？`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/users`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `username=${encodeURIComponent(username)}`
+                });
+
+                const data = await response.text();
+                
+                if (response.ok) {
+                    displayResponse('delete-user-response', `✅ 使用者刪除成功！\n使用者: ${username}`, true);
+                    document.getElementById('delete-username').value = '';
+                } else {
+                    displayResponse('delete-user-response', `❌ 刪除失敗\n${data}`, false);
+                }
+            } catch (error) {
+                displayResponse('delete-user-response', `❌ 連線錯誤: ${error.message}`, false);
+            }
+        }
+    </script>
+</body>
+</html>
